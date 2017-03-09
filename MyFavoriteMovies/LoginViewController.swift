@@ -109,15 +109,6 @@ class LoginViewController: UIViewController {
         /* 4. Make the request */
         let task = appDelegate.sharedSession.dataTask(with: request) { (data, response, error) in
             
-//            // error handling
-//            func displayError(error: String) {
-//                print(error)
-//                performUIUpdatesOnMain {
-//                    self.setUIEnabled(true)
-//                    self.debugTextLabel.text = "Login Failed"
-//                }
-//            }
-            
             /* GUARD: Check for error */
             guard (error == nil) else {
                 self.displayError(error: "There was an error with your request: \(error)")
@@ -286,6 +277,7 @@ class LoginViewController: UIViewController {
                 return
             }
             
+            self.appDelegate.sessionID = session_id
             self.getUserID(session_id)
         }
         
