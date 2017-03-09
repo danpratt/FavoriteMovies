@@ -281,12 +281,12 @@ class LoginViewController: UIViewController {
             /* 6. Use the data! */
             
             /* GUARD: Check success and get ID */
-            guard (sessionJSONData[Constants.TMDBResponseKeys.Success] as? Bool)!, let session_id = sessionJSONData[Constants.TMDBResponseKeys.SessionID] else {
+            guard (sessionJSONData[Constants.TMDBResponseKeys.Success] as? Bool)!, let session_id = sessionJSONData[Constants.TMDBResponseKeys.SessionID] as? String else {
                 self.displayError(error: "Unable to get session_id")
                 return
             }
             
-            print("The session ID is: \(session_id)")
+            self.getUserID(session_id)
         }
         
         
@@ -295,16 +295,70 @@ class LoginViewController: UIViewController {
         task.resume()
     }
     
-    private func getUserID(_ sessionID: String) {
+    // Get and save userID to appDelegate Singleton
+    private func getUserID(_ session_id: String) {
         
         /* TASK: Get the user's ID, then store it (appDelegate.userID) for future use and go to next view! */
         
         /* 1. Set the parameters */
+        
+        let methodParameters = [
+            Constants.TMDBParameterKeys.ApiKey:Constants.TMDBParameterValues.ApiKey,
+            Constants.TMDBParameterKeys.SessionID:session_id
+        ]
+        
         /* 2/3. Build the URL, Configure the request */
+        
         /* 4. Make the request */
-        /* 5. Parse the data */
-        /* 6. Use the data! */
+        let request = URLRequest(url: appDelegate.tmdbURLFromParameters(methodParameters as [String : AnyObject], withPathExtension: "/account"))
+        
+        let task = appDelegate.sharedSession.dataTask(with: request) {
+            (data, response, error) in
+            
+            /* GUARD: Check for error */
+            guard (error == nil) else {
+                self.displayError(error: "There was an error while getting username.  \(error)")
+                return
+            }
+            
+            /* GUARD: Check status */
+            guard let statusCode = (response as? HTTPURLResponse)?.statusCode, statusCode >= 200 && statusCode <= 299 else {
+                self.displayError(error: "Status Code returned other than sucess.  Expected 2xx")
+                return
+            }
+            
+            /* GUARD: Get the data */
+            guard let data = data else {
+                self.displayError(error: "Unable to retrieve data")
+                return
+            }
+            
+            /* 5. Parse the data */
+            
+            // Convert to JSON
+            let accountJSONData: [String:AnyObject]
+            do {
+                accountJSONData = try JSONSerialization.jsonObject(with: data, options: .allowFragments) as! [String:AnyObject]
+            } catch {
+                self.displayError(error: "Unable to convert data to JSON format")
+                return
+            }
+            
+            /* GUARD: Get username */
+            guard let user_id = accountJSONData[Constants.TMDBResponseKeys.UserID] as? Int else {
+                self.displayError(error: "Unable to get user ID")
+                return
+            }
+            
+            /* 6. Use the data! */
+            print("successful login")
+            self.appDelegate.userID = user_id
+            self.completeLogin()
+        }
+        
+        
         /* 7. Start the request */
+        task.resume()
     }
 }
 
